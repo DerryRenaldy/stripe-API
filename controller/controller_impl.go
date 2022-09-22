@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	ApiKey  = "Bearer sk_test_51LjzGAG2dQj3VjR6jvsXIEoeLN3Zz8zqWWggrGAwML87OBiiNacGf0qnmQYIhyxy0EXCnfR2v7QVkXIT7bGwdCna00xAXdmzAu"
 	Content = "application/x-www-form-urlencoded"
 	BaseURL = "https://api.stripe.com/v1/customers"
 )
