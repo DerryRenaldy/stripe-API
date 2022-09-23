@@ -6,3 +6,7 @@ type CustomerRequest struct {
 	Email       string `json:"email"`
 	Status      int    `json:"status"`
 }
+
+type CardRequest struct {
+	CardToken string `json:"card_token"`
+}

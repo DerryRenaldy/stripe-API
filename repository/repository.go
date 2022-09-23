@@ -14,7 +14,8 @@ type Client struct {
 }
 
 type Repository interface {
-	InsertCustomer(ctx context.Context, resAPI *responseWeb.APIResponse) (*responses.CustomerResponse, error)
+	InsertCustomer(ctx context.Context, resAPI *responseWeb.APICustomerResponse) (*responses.CustomerResponse, error)
+	InsertCard(ctx context.Context, resAPI *responseWeb.APICardResponse, cusID responseWeb.APICustomerResponse) (*responses.CardResponse, error)
 }
 
 func NewClient() *Client {

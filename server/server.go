@@ -32,7 +32,7 @@ func (s *Server) Start() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/createCustomer", s.controller.CreateCustomer).Methods(http.MethodPost)
-	//r.Handle("/createCustomer", s.controller.CreateCustomer).Methods(http.MethodPost)
+	r.HandleFunc("/createCard/{id}", s.controller.CreateCard).Methods(http.MethodPost)
 
 	fmt.Println("Server Listening At Port 8010...")
 	err := http.ListenAndServe(":8010", r)
