@@ -2,14 +2,23 @@ package services
 
 import (
 	"context"
-	"stripe-project/helper"
+	log "github.com/sirupsen/logrus"
 	"stripe-project/models/api/responses"
 	"stripe-project/models/web/responseWeb"
 )
 
-func (s *Services) CreateCustomer(ctx context.Context, resAPI *responseWeb.APIResponse) (*responses.CustomerResponse, error) {
-	resp, err := s.Repository.InsertCustomer(ctx, resAPI)
-	helper.PrintError(err)
+func (s *Services) CreateCustomer(ctx context.Context, resAPI *responseWeb.APIResponse) (*responses.CustomerResponse, *responses.DuplicateCustomerResponse, error) {
+	// ========== Define Message ==========
+	message := &responses.DuplicateCustomerResponse{
+		Message: "Phone Number or Email is Already Exist",
+	}
 
-	return resp, nil
+	// ========== Service Logic ==========
+	resp, err := s.Repository.InsertCustomer(ctx, resAPI)
+	if err != nil {
+		log.Println("ERROR SERVICE:", err)
+		return nil, message, err
+	}
+
+	return resp, nil, nil
 }

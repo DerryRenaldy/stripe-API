@@ -1,14 +1,17 @@
 package helper
 
 import (
-	"fmt"
-	"log"
+	log "github.com/sirupsen/logrus"
 )
 
 func PrintError(err error) {
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors: false,
+		FullTimestamp: true,
+	})
+
 	if err != nil {
 		log.Println(err)
-		fmt.Println(err)
 		return
 	}
 }

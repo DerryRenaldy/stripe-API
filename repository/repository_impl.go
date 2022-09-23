@@ -2,28 +2,45 @@ package repository
 
 import (
 	"context"
+	log "github.com/sirupsen/logrus"
 	"stripe-project/helper"
 	"stripe-project/models/api/responses"
 	"stripe-project/models/web/responseWeb"
 )
 
 func (c *Client) InsertCustomer(ctx context.Context, resAPI *responseWeb.APIResponse) (*responses.CustomerResponse, error) {
-	queryInsert := `INSERT INTO stripe.customers (customer_id, name, phone_number, email) 
-					VALUES (?, ?, ?, ?);`
+	// ========== Declaring Variable ==========
+	var result responses.CustomerResponse
+
+	// ========== Logrus Formatter ===========
+	log.SetFormatter(&log.TextFormatter{
+		DisableColors: false,
+		FullTimestamp: true,
+	})
+
+	// ========== Prepare Query ==========
+	queryInsert := `INSERT INTO stripe.customers (customer_id, name, phone_number, email, status) 
+					VALUES (?, ?, ?, ?, ?);`
 	query, err := c.DB.PrepareContext(ctx, queryInsert)
-	helper.PrintError(err)
+	if err != nil {
+		log.Println("ERROR REPOSITORY:", err)
+		return nil, err
+	}
 
 	defer query.Close()
 
-	_, err = query.ExecContext(ctx, resAPI.CustomerId, resAPI.Name, resAPI.PhoneNumber, resAPI.Email)
+	// ========== Execute Query ==========
+	_, err = query.ExecContext(ctx, resAPI.CustomerId, resAPI.Name, resAPI.PhoneNumber, resAPI.Email, resAPI.Status)
 	helper.PrintError(err)
 
-	querySearch := `SELECT c.customer_id, c.name, c.phone_number, c.email 
+	// ========== Search Query ==========
+	querySearch := `SELECT c.customer_id, c.name, c.phone_number, c.email, c.status
 					FROM stripe.customers c WHERE customer_id=?;`
-
-	var result responses.CustomerResponse
-	err = c.DB.QueryRowContext(ctx, querySearch, resAPI.CustomerId).Scan(&result.CustomerId, &result.Name, &result.PhoneNumber, &result.Email)
-	helper.PrintError(err)
+	err = c.DB.QueryRowContext(ctx, querySearch, resAPI.CustomerId).Scan(&result.CustomerId, &result.Name, &result.PhoneNumber, &result.Email, &result.Status)
+	if err != nil {
+		log.Println("ERROR REPOSITORY:", err)
+		return nil, err
+	}
 
 	return &result, nil
 }

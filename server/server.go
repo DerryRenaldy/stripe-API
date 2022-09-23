@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
 	"stripe-project/controller"
@@ -31,7 +32,9 @@ func (s *Server) Start() {
 	r := mux.NewRouter()
 
 	r.HandleFunc("/createCustomer", s.controller.CreateCustomer).Methods(http.MethodPost)
+	//r.Handle("/createCustomer", s.controller.CreateCustomer).Methods(http.MethodPost)
 
+	fmt.Println("Server Listening At Port 8010...")
 	err := http.ListenAndServe(":8010", r)
 	helper.PrintError(err)
 }

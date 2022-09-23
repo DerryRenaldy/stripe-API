@@ -12,7 +12,7 @@ type Services struct {
 }
 
 type Repository interface {
-	CreateCustomer(ctx context.Context, resApi *responseWeb.APIResponse) (*responses.CustomerResponse, error)
+	CreateCustomer(ctx context.Context, resApi *responseWeb.APIResponse) (*responses.CustomerResponse, *responses.DuplicateCustomerResponse, error)
 }
 
 func NewService(repository repository.Repository) *Services {
