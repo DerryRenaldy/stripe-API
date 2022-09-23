@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -29,14 +28,14 @@ func (c *Controller) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 	// request json into struct golang
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&customerRequest)
-	helper.PrintError(err)
+	if err != nil {
+		log.Println("ERROR UNMARSHAL:", err)
+		helper.RespondWithError(w, http.StatusBadRequest, "Bad Request")
+		return
+	}
 
 	// Fill In the Status value
 	apiResponse.Status = customerRequest.Status
-	fmt.Println(apiResponse.Status)
-	fmt.Printf("%T \n", apiResponse.Status)
-	fmt.Println(customerRequest.Status)
-	fmt.Printf("%T \n", customerRequest.Status)
 
 	data := url.Values{}
 	data.Add("name", customerRequest.Name)
@@ -45,7 +44,10 @@ func (c *Controller) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 	dataReader := bytes.NewBufferString(data.Encode())
 
 	request, err := http.NewRequest(http.MethodPost, BaseURL, dataReader)
-	helper.PrintError(err)
+	if err != nil {
+		log.Println("ERROR CREATE NEW REQUEST:", err)
+		helper.RespondWithError(w, http.StatusBadGateway, err.Error())
+	}
 
 	request.Header.Set("Authorization", ApiKey)
 	request.Header.Set("Content-Type", Content)
@@ -53,7 +55,10 @@ func (c *Controller) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 	client = http.Client{}
 
 	response, err := client.Do(request)
-	helper.PrintError(err)
+	if err != nil {
+		log.Println("ERROR EXECUTE REQUEST:", err)
+		helper.RespondWithError(w, http.StatusBadGateway, err.Error())
+	}
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
@@ -64,22 +69,22 @@ func (c *Controller) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 
 	// payload is in json format
 	payload, err := io.ReadAll(response.Body)
-	helper.PrintError(err)
+	if err != nil {
+		log.Println("ERROR PARSING PAYLOAD:", err)
+		helper.RespondWithError(w, http.StatusExpectationFailed, "parsing failed")
+	}
 
 	err = json.Unmarshal(payload, &apiResponse)
 	if err != nil {
 		log.Println("ERROR UNMARSHAL:", err)
+		helper.RespondWithError(w, http.StatusBadRequest, "Bad Request")
 	}
 
-	customerResponse, duplicateMessage, err := c.Services.CreateCustomer(r.Context(), &apiResponse)
+	customerResponse, err := c.Services.CreateCustomer(r.Context(), &apiResponse)
 
 	if err != nil {
-		err := helper.PrintResponseToJson(w, duplicateMessage)
-		if err != nil {
-			log.Println("ERROR:", err)
-		}
+		helper.RespondWithError(w, http.StatusBadRequest, "Duplicate Email or Phone Number")
 	} else {
-		err := helper.PrintResponseToJson(w, customerResponse)
-		helper.PrintError(err)
+		helper.RespondWithJSON(w, http.StatusOK, customerResponse)
 	}
 }

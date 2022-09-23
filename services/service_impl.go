@@ -7,18 +7,13 @@ import (
 	"stripe-project/models/web/responseWeb"
 )
 
-func (s *Services) CreateCustomer(ctx context.Context, resAPI *responseWeb.APIResponse) (*responses.CustomerResponse, *responses.DuplicateCustomerResponse, error) {
-	// ========== Define Message ==========
-	message := &responses.DuplicateCustomerResponse{
-		Message: "Phone Number or Email is Already Exist",
-	}
-
+func (s *Services) CreateCustomer(ctx context.Context, resAPI *responseWeb.APIResponse) (*responses.CustomerResponse, error) {
 	// ========== Service Logic ==========
 	resp, err := s.Repository.InsertCustomer(ctx, resAPI)
 	if err != nil {
 		log.Println("ERROR SERVICE:", err)
-		return nil, message, err
+		return nil, err
 	}
 
-	return resp, nil, nil
+	return resp, nil
 }
