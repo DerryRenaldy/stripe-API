@@ -25,6 +25,7 @@ func (c *Controller) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 	var customerRequest = requests.CustomerRequest{}
 	var client http.Client
 	var apiResponse responseWeb.APICustomerResponse
+	var errValidate error
 
 	// ========== Controller Logic ==========
 	// request json into struct golang
@@ -36,65 +37,73 @@ func (c *Controller) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Fill In the Status value
-	apiResponse.Status = customerRequest.Status
+	validator, errValidate := c.Services.DuplicateValidation(r.Context(), customerRequest)
+	defer fmt.Println(validator == nil)
+	if validator == nil && errValidate == nil {
+		// Fill In the Status value
+		apiResponse.Status = customerRequest.Status
 
-	data := url.Values{}
-	data.Add("name", customerRequest.Name)
-	data.Add("phone", customerRequest.PhoneNumber)
-	data.Add("email", customerRequest.Email)
-	dataReader := bytes.NewBufferString(data.Encode())
+		data := url.Values{}
+		data.Add("name", customerRequest.Name)
+		data.Add("phone", customerRequest.PhoneNumber)
+		data.Add("email", customerRequest.Email)
+		dataReader := bytes.NewBufferString(data.Encode())
 
-	request, err := http.NewRequest(http.MethodPost, BaseURL+"/v1/customers", dataReader)
-	if err != nil {
-		log.Println("ERROR CREATE NEW REQUEST:", err)
-		helper.RespondWithError(w, http.StatusBadGateway, err.Error())
-		return
-	}
-
-	request.Header.Set("Authorization", ApiKey)
-	request.Header.Set("Content-Type", Content)
-
-	client = http.Client{}
-
-	response, err := client.Do(request)
-	if err != nil {
-		log.Println("ERROR EXECUTE REQUEST:", err)
-		helper.RespondWithError(w, http.StatusBadGateway, err.Error())
-		return
-	}
-	fmt.Println(response.StatusCode)
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
+		request, err := http.NewRequest(http.MethodPost, BaseURL+"/v1/customers", dataReader)
 		if err != nil {
-
+			log.Println("ERROR CREATE NEW REQUEST:", err)
+			helper.RespondWithError(w, http.StatusBadGateway, err.Error())
+			return
 		}
-	}(response.Body)
 
-	// payload is in json format
-	payload, err := io.ReadAll(response.Body)
-	if err != nil {
-		log.Println("ERROR PARSING PAYLOAD:", err)
-		helper.RespondWithError(w, http.StatusExpectationFailed, "parsing failed")
-		return
-	}
+		request.Header.Set("Authorization", ApiKey)
+		request.Header.Set("Content-Type", Content)
 
-	err = json.Unmarshal(payload, &apiResponse)
-	if err != nil {
-		log.Println("ERROR UNMARSHAL:", err)
-		helper.RespondWithError(w, http.StatusBadRequest, "Bad Request")
-		return
-	}
+		client = http.Client{}
 
-	customerResponse, err := c.Services.CreateCustomer(r.Context(), &apiResponse)
+		response, err := client.Do(request)
+		if err != nil {
+			log.Println("ERROR EXECUTE REQUEST:", err)
+			helper.RespondWithError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+		fmt.Println(response.StatusCode)
 
-	if err != nil {
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+
+			}
+		}(response.Body)
+
+		// payload is in json format
+		payload, err := io.ReadAll(response.Body)
+		if err != nil {
+			log.Println("ERROR PARSING PAYLOAD:", err)
+			helper.RespondWithError(w, http.StatusExpectationFailed, "parsing failed")
+			return
+		}
+
+		err = json.Unmarshal(payload, &apiResponse)
+		if err != nil {
+			log.Println("ERROR UNMARSHAL:", err)
+			helper.RespondWithError(w, http.StatusBadRequest, "Bad Request")
+			return
+		}
+
+		customerResponse, err := c.Services.CreateCustomer(r.Context(), &apiResponse)
+
+		if err != nil {
+			helper.RespondWithError(w, http.StatusBadRequest, "Duplicate Email or Phone Number")
+			return
+		} else {
+			helper.RespondWithJSON(w, http.StatusOK, customerResponse)
+		}
+	} else {
 		helper.RespondWithError(w, http.StatusBadRequest, "Duplicate Email or Phone Number")
 		return
-	} else {
-		helper.RespondWithJSON(w, http.StatusOK, customerResponse)
 	}
+
 }
 
 func (c *Controller) CreateCard(w http.ResponseWriter, r *http.Request) {

@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	log "github.com/sirupsen/logrus"
+	"stripe-project/models/api/requests"
 	"stripe-project/models/api/responses"
 	"stripe-project/models/web/responseWeb"
 )
@@ -26,4 +27,13 @@ func (s *Services) CreateCard(ctx context.Context, resAPI *responseWeb.APICardRe
 	}
 
 	return resp, nil
+}
+
+func (s *Services) DuplicateValidation(ctx context.Context, req requests.CustomerRequest) ([]responses.Validator, error) {
+	validator, err := s.Repository.DuplicateValidation(ctx, req)
+	if err != nil {
+		log.Println("ERROR SERVICE DUPLICATE VALIDATION:", err)
+		return nil, err
+	}
+	return validator, err
 }

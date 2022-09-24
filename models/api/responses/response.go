@@ -13,3 +13,8 @@ type CardResponse struct {
 	CardId string `json:"card_id"`
 	Brand  string `json:"brand"`
 }
+
+type Validator struct {
+	PhoneNumber string `json:"phone_number"`
+	Email       string `json:"email"`
+}

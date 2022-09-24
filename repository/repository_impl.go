@@ -3,10 +3,45 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	log "github.com/sirupsen/logrus"
+	"stripe-project/models/api/requests"
 	"stripe-project/models/api/responses"
 	"stripe-project/models/web/responseWeb"
 )
+
+func (c *Client) DuplicateValidation(ctx context.Context, req requests.CustomerRequest) ([]responses.Validator, error) {
+	var dataValidator []responses.Validator
+	// ========== Prepare Query ==========
+	querySearch := `SELECT c.phone_number, c.email FROM stripe.customers c 
+                    WHERE phone_number=? OR email=?;`
+
+	rows, err := c.DB.QueryContext(ctx, querySearch, req.PhoneNumber, req.Email)
+	if err != nil {
+		log.Println("ERROR REPOSITORY DUPLICATE VALIDATOR:", err)
+		return nil, err
+	}
+
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
+
+	for rows.Next() {
+		res := responses.Validator{}
+		err := rows.Scan(&res.PhoneNumber, &res.Email)
+		if err != nil {
+			log.Println("ERROR REPOSITORY SCAN DATA:", err)
+			return nil, err
+		}
+		dataValidator = append(dataValidator, res)
+	}
+
+	defer fmt.Println(dataValidator)
+	return dataValidator, nil
+}
 
 func (c *Client) InsertCustomer(ctx context.Context, resAPI *responseWeb.APICustomerResponse) (*responses.CustomerResponse, error) {
 	// ========== Declaring Variable ==========
