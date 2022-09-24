@@ -17,7 +17,7 @@ type Client struct {
 type Repository interface {
 	DuplicateValidation(ctx context.Context, req requests.CustomerRequest) ([]responses.Validator, error)
 	InsertCustomer(ctx context.Context, resAPI *responseWeb.APICustomerResponse) (*responses.CustomerResponse, error)
-	InsertCard(ctx context.Context, resAPI *responseWeb.APICardResponse, cusID responseWeb.APICustomerResponse) (*responses.CardResponse, error)
+	InsertCard(ctx context.Context, resAPI *responseWeb.APICardResponse) (*responses.CardResponse, error)
 }
 
 func NewClient() *Client {

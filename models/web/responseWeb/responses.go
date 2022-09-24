@@ -9,6 +9,7 @@ type APICustomerResponse struct {
 }
 
 type APICardResponse struct {
-	CardId string `json:"id"`
-	Brand  string `json:"brand"`
+	CardId     string `json:"id"`
+	Brand      string `json:"brand"`
+	CustomerId string `json:"customer"`
 }

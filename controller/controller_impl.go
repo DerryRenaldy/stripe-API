@@ -3,7 +3,6 @@ package controller
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"io"
 	"log"
@@ -37,8 +36,8 @@ func (c *Controller) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// ===== Validate Duplicate Card =====
 	validator, errValidate := c.Services.DuplicateValidation(r.Context(), customerRequest)
-	defer fmt.Println(validator == nil)
 	if validator == nil && errValidate == nil {
 		// Fill In the Status value
 		apiResponse.Status = customerRequest.Status
@@ -67,7 +66,6 @@ func (c *Controller) CreateCustomer(w http.ResponseWriter, r *http.Request) {
 			helper.RespondWithError(w, http.StatusBadGateway, err.Error())
 			return
 		}
-		fmt.Println(response.StatusCode)
 
 		defer func(Body io.ReadCloser) {
 			err := Body.Close()
@@ -147,7 +145,6 @@ func (c *Controller) CreateCard(w http.ResponseWriter, r *http.Request) {
 		helper.RespondWithError(w, http.StatusBadGateway, err.Error())
 		return
 	}
-	fmt.Println(response.StatusCode)
 
 	if response.StatusCode != http.StatusOK {
 		helper.RespondWithError(w, http.StatusBadRequest, "Bad Request")
@@ -176,10 +173,7 @@ func (c *Controller) CreateCard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	custId := responseWeb.APICustomerResponse{
-		CustomerId: id,
-	}
-	cardResponse, err := c.Services.CreateCard(r.Context(), &apiResponse, custId)
+	cardResponse, err := c.Services.CreateCard(r.Context(), &apiResponse)
 	if err != nil {
 		helper.RespondWithError(w, http.StatusBadRequest, err.Error())
 		return

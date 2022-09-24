@@ -77,9 +77,9 @@ func (c *Client) InsertCustomer(ctx context.Context, resAPI *responseWeb.APICust
 	}
 
 	// ========== Search Query ==========
-	querySearch := `SELECT c.customer_id, c.name, c.phone_number, c.email, c.status, c.card_id
+	querySearch := `SELECT c.customer_id, c.name, c.phone_number, c.email, c.status
 					FROM stripe.customers c WHERE customer_id=?;`
-	err = c.DB.QueryRowContext(ctx, querySearch, resAPI.CustomerId).Scan(&result.CustomerId, &result.Name, &result.PhoneNumber, &result.Email, &result.Status, &result.CardId)
+	err = c.DB.QueryRowContext(ctx, querySearch, resAPI.CustomerId).Scan(&result.CustomerId, &result.Name, &result.PhoneNumber, &result.Email, &result.Status)
 	if err != nil {
 		log.Println("ERROR REPOSITORY QUERY:", err)
 		return nil, err
@@ -88,7 +88,9 @@ func (c *Client) InsertCustomer(ctx context.Context, resAPI *responseWeb.APICust
 	return &result, nil
 }
 
-func (c *Client) InsertCard(ctx context.Context, resAPI *responseWeb.APICardResponse, cusID responseWeb.APICustomerResponse) (*responses.CardResponse, error) {
+func (c *Client) InsertCard(ctx context.Context, resAPI *responseWeb.APICardResponse) (*responses.CardResponse, error) {
+	var result responses.CardResponse
+	var customer responses.CustomerInfo
 	// ========== Prepare Query ==========
 	queryInsert := `INSERT INTO stripe.cards (card_id, customer_id, brand) VALUES (?, ?, ?);`
 	query, err := c.DB.PrepareContext(ctx, queryInsert)
@@ -104,37 +106,27 @@ func (c *Client) InsertCard(ctx context.Context, resAPI *responseWeb.APICardResp
 		}
 	}(query)
 
-	// ========== Search Query ==========
-	_, err = query.ExecContext(ctx, resAPI.CardId, cusID.CustomerId, resAPI.Brand)
+	// ========== Exec Query ==========
+	_, err = query.ExecContext(ctx, resAPI.CardId, resAPI.CustomerId, resAPI.Brand)
 	if err != nil {
 		log.Println("ERROR REPOSITORY EXEC:", err)
 		return nil, err
 	}
 
-	// ========== Add Card Id to Desire Customer ==========
-	queryUpdate := `UPDATE stripe.customers SET card_id = ? WHERE customer_id=? AND card_id IS NULL;`
-	query, err = c.DB.PrepareContext(ctx, queryUpdate)
+	querySearch := `SELECT c.name, c.phone_number FROM stripe.customers c 
+                    WHERE c.customer_id = ?;`
+
+	err = c.DB.QueryRowContext(ctx, querySearch, resAPI.CustomerId).Scan(&customer.Name, &customer.PhoneNumber)
 	if err != nil {
-		log.Println("ERROR REPOSITORY PREPARE:", err)
+		log.Println("ERROR REPOSITORY SEARCH INSERT CARD:", err)
 		return nil, err
 	}
 
-	defer func(query *sql.Stmt) {
-		err := query.Close()
-		if err != nil {
-
-		}
-	}(query)
-
-	_, err = query.ExecContext(ctx, resAPI.CardId, cusID.CustomerId)
-	if err != nil {
-		log.Println("ERROR REPOSITORY EXEC:", err)
-		return nil, err
-	}
-
-	result := responses.CardResponse{
-		CardId: resAPI.CardId,
-		Brand:  resAPI.Brand,
+	result = responses.CardResponse{
+		CardId:              resAPI.CardId,
+		Brand:               resAPI.Brand,
+		CustomerName:        customer.Name,
+		CustomerPhoneNumber: customer.PhoneNumber,
 	}
 
 	return &result, nil

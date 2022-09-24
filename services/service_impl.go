@@ -19,8 +19,8 @@ func (s *Services) CreateCustomer(ctx context.Context, resAPI *responseWeb.APICu
 	return resp, nil
 }
 
-func (s *Services) CreateCard(ctx context.Context, resAPI *responseWeb.APICardResponse, cusID responseWeb.APICustomerResponse) (*responses.CardResponse, error) {
-	resp, err := s.Repository.InsertCard(ctx, resAPI, cusID)
+func (s *Services) CreateCard(ctx context.Context, resAPI *responseWeb.APICardResponse) (*responses.CardResponse, error) {
+	resp, err := s.Repository.InsertCard(ctx, resAPI)
 	if err != nil {
 		log.Println("ERROR SERVICE:", err)
 		return nil, err
