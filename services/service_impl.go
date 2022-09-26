@@ -37,3 +37,23 @@ func (s *Services) DuplicateValidation(ctx context.Context, req requests.Custome
 	}
 	return validator, err
 }
+
+func (s *Services) GetCustomerById(ctx context.Context, customerId string) (*responses.CustomerResponse, error) {
+	resp, err := s.Repository.GetCustomerById(ctx, customerId)
+	if err != nil {
+		log.Println("ERROR SERVICE GET CUSTOMER BY ID:", err)
+		return nil, err
+	}
+
+	return resp, nil
+}
+
+func (s *Services) GetCards(ctx context.Context, brand string, customerId string) ([]responses.GetCardsResponse, error) {
+	resp, err := s.Repository.GetCards(ctx, brand, customerId)
+	if err != nil {
+		log.Println("ERROR SERVICE GET CARDS:", err)
+		return nil, err
+	}
+
+	return resp, nil
+}

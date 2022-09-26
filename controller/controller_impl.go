@@ -181,3 +181,28 @@ func (c *Controller) CreateCard(w http.ResponseWriter, r *http.Request) {
 		helper.RespondWithJSON(w, http.StatusOK, cardResponse)
 	}
 }
+
+func (c *Controller) GetCustomerById(w http.ResponseWriter, r *http.Request) {
+	customerId := r.URL.Query().Get("customerId")
+
+	customerResponse, err := c.Services.GetCustomerById(r.Context(), customerId)
+	if err != nil {
+		helper.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	helper.RespondWithJSON(w, http.StatusOK, customerResponse)
+}
+
+func (c *Controller) GetCards(w http.ResponseWriter, r *http.Request) {
+	customerId := r.URL.Query().Get("customerId")
+	brand := r.URL.Query().Get("brand")
+
+	cardResponse, err := c.Services.GetCards(r.Context(), brand, customerId)
+	if err != nil {
+		helper.RespondWithError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	helper.RespondWithJSON(w, http.StatusOK, cardResponse)
+}

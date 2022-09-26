@@ -5,14 +5,14 @@ import (
 	"net/http"
 )
 
-func PrintResponseToJson(w http.ResponseWriter, value interface{}) error {
-	w.Header().Set("content-type", "application/json")
-	encoder := json.NewEncoder(w)
-	err := encoder.Encode(value)
-	PrintError(err)
-
-	return err
-}
+//func PrintResponseToJson(w http.ResponseWriter, value interface{}) error {
+//	w.Header().Set("content-type", "application/json")
+//	encoder := json.NewEncoder(w)
+//	err := encoder.Encode(value)
+//	PrintError(err)
+//
+//	return err
+//}
 
 func RespondWithError(w http.ResponseWriter, code int, message string) {
 	RespondWithJSON(w, code, map[string]string{"error": message})

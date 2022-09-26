@@ -31,8 +31,10 @@ func Register() *Server {
 func (s *Server) Start() {
 	r := mux.NewRouter()
 
-	r.HandleFunc("/createCustomer", s.controller.CreateCustomer).Methods(http.MethodPost)
+	r.HandleFunc("/customer", s.controller.CreateCustomer).Methods(http.MethodPost)
+	r.HandleFunc("/customer", s.controller.GetCustomerById).Methods(http.MethodGet)
 	r.HandleFunc("/createCard/{id}", s.controller.CreateCard).Methods(http.MethodPost)
+	r.HandleFunc("/card", s.controller.GetCards).Methods(http.MethodGet)
 
 	fmt.Println("Server Listening At Port 8010...")
 	err := http.ListenAndServe(":8010", r)

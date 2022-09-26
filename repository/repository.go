@@ -18,6 +18,9 @@ type Repository interface {
 	DuplicateValidation(ctx context.Context, req requests.CustomerRequest) ([]responses.Validator, error)
 	InsertCustomer(ctx context.Context, resAPI *responseWeb.APICustomerResponse) (*responses.CustomerResponse, error)
 	InsertCard(ctx context.Context, resAPI *responseWeb.APICardResponse) (*responses.CardResponse, error)
+	GetCustomerById(ctx context.Context, customerId string) (*responses.CustomerResponse, error)
+	GetCards(ctx context.Context, brand string, customerId string) ([]responses.GetCardsResponse, error)
+	CreateCharges(ctx context.Context)
 }
 
 func NewClient() *Client {

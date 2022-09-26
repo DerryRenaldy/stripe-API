@@ -1,9 +1,11 @@
 package responses
 
+import "time"
+
 type CustomerResponse struct {
-	CustomerId  string `json:"id"`
+	CustomerId  string `json:"customer_id"`
 	Name        string `json:"name"`
-	PhoneNumber string `json:"phone"`
+	PhoneNumber string `json:"phone_number"`
 	Email       string `json:"email"`
 	Status      int    `json:"status"`
 }
@@ -23,4 +25,17 @@ type Validator struct {
 type CustomerInfo struct {
 	Name        string
 	PhoneNumber string
+}
+
+type GetCardsResponse struct {
+	CardId     string `json:"card_id"`
+	Brand      string `json:"brand"`
+	CustomerId string `json:"customer_id"`
+}
+
+type PaymentResponse struct {
+	CustomerId   string    `json:"customer_id"`
+	CardId       string    `json:"card_id"`
+	RecipientURL string    `json:"recipient_url"`
+	CreatedAt    time.Time `json:"created_at"`
 }
