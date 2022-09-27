@@ -12,9 +12,8 @@ type CardRequest struct {
 }
 
 type ChargesRequest struct {
+	CardId      string `json:"card_id"`
 	Amount      int    `json:"amount"`
 	Currency    string `json:"currency"`
-	CardId      string `json:"card_id"`
 	Description string `json:"description"`
-	CustomerId  string `json:"customerId"`
 }

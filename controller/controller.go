@@ -14,6 +14,7 @@ type Repository interface {
 	CreateCard(w http.ResponseWriter, r *http.Request)
 	GetCustomerById(w http.ResponseWriter, r *http.Request)
 	GetCards(w http.ResponseWriter, r *http.Request)
+	CreateCharges(w http.ResponseWriter, r *http.Request)
 }
 
 func NewController(services services.Repository) *Controller {

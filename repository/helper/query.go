@@ -10,7 +10,7 @@ import (
 func Scan(rows *sql.Rows, result []responses.GetCardsResponse) ([]responses.GetCardsResponse, error) {
 	for rows.Next() {
 		row := responses.GetCardsResponse{}
-		err := rows.Scan(&row.CardId, &row.Brand, &row.CustomerId)
+		err := rows.Scan(&row.CardId, &row.Brand, &row.CustomerId, &row.CustomerName, &row.CustomerPhoneNumber, &row.Status)
 		if err != nil {
 			return nil, err
 		}

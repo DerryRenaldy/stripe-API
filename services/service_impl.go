@@ -57,3 +57,23 @@ func (s *Services) GetCards(ctx context.Context, brand string, customerId string
 
 	return resp, nil
 }
+
+func (s *Services) CreateCharges(ctx context.Context, req requests.ChargesRequest, resAPI *responseWeb.APIChargesResponse, customerId string) ([]responses.ChargesResponse, error) {
+	resp, err := s.Repository.CreateCharges(ctx, req, resAPI, customerId)
+	if err != nil {
+		log.Println("ERROR SERVICE CREATE CHARGES:", err)
+		return nil, err
+	}
+
+	return resp, err
+}
+
+func (s *Services) ChargesValidation(customerId string) (*responses.ValidatorCharges, error) {
+	validate, err := s.Repository.ChargesValidation(customerId)
+	if err != nil {
+		log.Println("ERROR SERVICE DUPLICATE VALIDATION:", err)
+		return nil, err
+	}
+
+	return validate, err
+}

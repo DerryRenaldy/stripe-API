@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"stripe-project/helper"
 	"stripe-project/models/api/requests"
 	"stripe-project/models/web/responseWeb"
@@ -205,4 +206,91 @@ func (c *Controller) GetCards(w http.ResponseWriter, r *http.Request) {
 	}
 
 	helper.RespondWithJSON(w, http.StatusOK, cardResponse)
+}
+
+func (c *Controller) CreateCharges(w http.ResponseWriter, r *http.Request) {
+	// ========== Declaring Variables ==========
+	var chargeRequest requests.ChargesRequest
+	var client http.Client
+	var apiResponse responseWeb.APIChargesResponse
+	var errValidate error
+
+	// Get Customer id From URL Parameter
+	customerId := r.URL.Query().Get("customerId")
+
+	// ========== Controller Logic ==========
+	// request json into struct golang
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&chargeRequest)
+	if err != nil {
+		log.Println("ERROR UNMARSHAL:", err)
+		helper.RespondWithError(w, http.StatusBadRequest, "Bad Request")
+		return
+	}
+
+	// ========== Validate Status customer ==========
+	validate, errValidate := c.Services.ChargesValidation(customerId)
+
+	if validate != nil && errValidate == nil && validate.Status == "active" {
+
+		data := url.Values{}
+		data.Add("amount", strconv.Itoa(chargeRequest.Amount))
+		data.Add("currency", chargeRequest.Currency)
+		data.Add("description", chargeRequest.Description)
+		data.Add("customer", customerId)
+		dataReader := bytes.NewBufferString(data.Encode())
+
+		request, err := http.NewRequest(http.MethodPost, BaseURL+"/v1/charges", dataReader)
+		if err != nil {
+			log.Println("ERROR CREATE NEW REQUEST:", err)
+			helper.RespondWithError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+
+		request.Header.Set("Authorization", ApiKey)
+		request.Header.Set("Content-Type", Content)
+
+		client = http.Client{}
+
+		response, err := client.Do(request)
+		if err != nil {
+			log.Println("ERROR EXECUTE REQUEST:", err)
+			helper.RespondWithError(w, http.StatusBadGateway, err.Error())
+			return
+		}
+
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+
+			}
+		}(response.Body)
+
+		// payload is in json format
+		payload, err := io.ReadAll(response.Body)
+		if err != nil {
+			log.Println("ERROR PARSING PAYLOAD:", err)
+			helper.RespondWithError(w, http.StatusExpectationFailed, "parsing failed")
+			return
+		}
+
+		err = json.Unmarshal(payload, &apiResponse)
+		if err != nil {
+			log.Println("ERROR UNMARSHAL:", err)
+			helper.RespondWithError(w, http.StatusBadRequest, "Bad Request")
+			return
+		}
+
+		customerResponse, err := c.Services.CreateCharges(r.Context(), chargeRequest, &apiResponse, customerId)
+
+		if err != nil {
+			helper.RespondWithError(w, http.StatusBadRequest, err.Error())
+			return
+		} else {
+			helper.RespondWithJSON(w, http.StatusOK, customerResponse)
+		}
+	} else {
+		helper.RespondWithError(w, http.StatusBadRequest, "Customer is Not Active")
+		return
+	}
 }

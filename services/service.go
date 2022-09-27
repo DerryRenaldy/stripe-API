@@ -18,6 +18,8 @@ type Repository interface {
 	DuplicateValidation(ctx context.Context, req requests.CustomerRequest) ([]responses.Validator, error)
 	GetCustomerById(ctx context.Context, customerId string) (*responses.CustomerResponse, error)
 	GetCards(ctx context.Context, brand string, customerId string) ([]responses.GetCardsResponse, error)
+	CreateCharges(ctx context.Context, req requests.ChargesRequest, resAPI *responseWeb.APIChargesResponse, customerId string) ([]responses.ChargesResponse, error)
+	ChargesValidation(customerId string) (*responses.ValidatorCharges, error)
 }
 
 func NewService(repository repository.Repository) *Services {

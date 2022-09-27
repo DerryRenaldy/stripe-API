@@ -35,6 +35,7 @@ func (s *Server) Start() {
 	r.HandleFunc("/customer", s.controller.GetCustomerById).Methods(http.MethodGet)
 	r.HandleFunc("/createCard/{id}", s.controller.CreateCard).Methods(http.MethodPost)
 	r.HandleFunc("/card", s.controller.GetCards).Methods(http.MethodGet)
+	r.HandleFunc("/charge", s.controller.CreateCharges).Methods(http.MethodPost)
 
 	fmt.Println("Server Listening At Port 8010...")
 	err := http.ListenAndServe(":8010", r)

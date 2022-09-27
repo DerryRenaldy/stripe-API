@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"stripe-project/models/api/requests"
 	"stripe-project/models/api/responses"
@@ -44,6 +45,36 @@ func (c *Client) DuplicateValidation(ctx context.Context, req requests.CustomerR
 	return dataValidator, nil
 }
 
+func (c *Client) ChargesValidation(customerId string) (*responses.ValidatorCharges, error) {
+	var validation responses.ValidatorCharges
+	querySearch := `SELECT c.customer_id, cs.description FROM stripe.customers c 
+    				JOIN stripe.customers_status cs ON c.status=cs.status 
+                    WHERE c.customer_id=?;`
+
+	rows, err := c.DB.Query(querySearch, customerId)
+	if err != nil {
+		log.Println("ERROR REPOSITORY VALIDATE CHARGES:", err)
+		return nil, err
+	}
+
+	defer func(rows *sql.Rows) {
+		err := rows.Close()
+		if err != nil {
+
+		}
+	}(rows)
+
+	if rows.Next() {
+		err = rows.Scan(&validation.CustomerId, &validation.Status)
+		if err != nil {
+			log.Println("ERROR REPOSITORY SCANNING:", err)
+			return nil, err
+		}
+	}
+
+	return &validation, err
+}
+
 func (c *Client) InsertCustomer(ctx context.Context, resAPI *responseWeb.APICustomerResponse) (*responses.CustomerResponse, error) {
 	// ========== Declaring Variable ==========
 	var result responses.CustomerResponse
@@ -78,8 +109,10 @@ func (c *Client) InsertCustomer(ctx context.Context, resAPI *responseWeb.APICust
 	}
 
 	// ========== Search Query ==========
-	querySearch := `SELECT c.customer_id, c.name, c.phone_number, c.email, c.status
-					FROM stripe.customers c WHERE customer_id=?;`
+	querySearch := `SELECT c.customer_id, c.name, c.phone_number, c.email, cs.description
+					FROM stripe.customers_status cs JOIN stripe.customers c ON c.status = cs.status
+					WHERE customer_id=?;`
+
 	err = c.DB.QueryRowContext(ctx, querySearch, resAPI.CustomerId).Scan(&result.CustomerId, &result.Name, &result.PhoneNumber, &result.Email, &result.Status)
 	if err != nil {
 		log.Println("ERROR REPOSITORY QUERY:", err)
@@ -92,7 +125,7 @@ func (c *Client) InsertCustomer(ctx context.Context, resAPI *responseWeb.APICust
 func (c *Client) InsertCard(ctx context.Context, resAPI *responseWeb.APICardResponse) (*responses.CardResponse, error) {
 	// ========== Declaring Variable ==========
 	var result responses.CardResponse
-	var customer responses.CustomerInfo
+	//var customer responses.CustomerInfo
 
 	// ========== Prepare Query ==========
 	queryInsert := `INSERT INTO stripe.cards (card_id, customer_id, brand) VALUES (?, ?, ?);`
@@ -116,21 +149,19 @@ func (c *Client) InsertCard(ctx context.Context, resAPI *responseWeb.APICardResp
 		return nil, err
 	}
 
-	querySearch := `SELECT c.name, c.phone_number FROM stripe.customers c 
-                    WHERE c.customer_id = ?;`
+	querySearch := `SELECT cr.customer_id, cr.card_id, cr.brand, c.name, c.phone_number FROM stripe.cards cr
+					JOIN stripe.customers c ON cr.customer_id=c.customer_id 
+                	WHERE cr.card_id=?;`
 
-	err = c.DB.QueryRowContext(ctx, querySearch, resAPI.CustomerId).Scan(&customer.Name, &customer.PhoneNumber)
+	err = c.DB.QueryRowContext(ctx, querySearch, resAPI.CardId).Scan(&result.CustomerId, &result.CardId, &result.Brand, &result.CustomerName, &result.CustomerPhoneNumber)
 	if err != nil {
 		log.Println("ERROR REPOSITORY SEARCH INSERT CARD:", err)
 		return nil, err
 	}
 
-	result = responses.CardResponse{
-		CardId:              resAPI.CardId,
-		Brand:               resAPI.Brand,
-		CustomerName:        customer.Name,
-		CustomerPhoneNumber: customer.PhoneNumber,
-	}
+	// ===== Insert Card Expire Date =====
+	expireDate := fmt.Sprintf("%v-%v", resAPI.ExpireMonth, resAPI.ExpireYear)
+	result.ExpireDate = expireDate
 
 	return &result, nil
 }
@@ -173,7 +204,9 @@ func (c *Client) GetCards(ctx context.Context, brand string, customerId string) 
 	// ========== Defining Variables ==========
 	var result []responses.GetCardsResponse
 
-	querySearch := `SELECT cr.card_id, cr.brand, cr.customer_id FROM stripe.cards cr WHERE 1`
+	querySearch := `SELECT cr.card_id, cr.brand, cr.customer_id, c.name, c.phone_number, cs.description
+					FROM stripe.customers c JOIN stripe.cards cr ON cr.customer_id = c.customer_id 
+					JOIN stripe.customers_status cs ON cs.status=c.status WHERE 1`
 
 	// Logic Parameter
 	if brand == "" && customerId == "" {
@@ -189,7 +222,7 @@ func (c *Client) GetCards(ctx context.Context, brand string, customerId string) 
 	}
 
 	if brand != "" && customerId != "" {
-		querySearch += ` AND brand=? && customer_id=?;`
+		querySearch += ` AND cr.brand=? && c.customer_id=? ORDER BY cs.description AND c.name;`
 
 		result, err := helper.QueryAllParameter(c.DB, ctx, querySearch, result, brand, customerId)
 		if err != nil {
@@ -201,7 +234,7 @@ func (c *Client) GetCards(ctx context.Context, brand string, customerId string) 
 	}
 
 	if brand != "" {
-		querySearch += ` AND brand=?;`
+		querySearch += ` AND cr.brand=? ORDER BY cs.description AND c.name;`
 		result, err := helper.QueryBrand(c.DB, ctx, querySearch, result, brand)
 		if err != nil {
 			log.Println("ERROR REPOSITORY QUERY EMPTY PARAMETER:", err)
@@ -212,7 +245,7 @@ func (c *Client) GetCards(ctx context.Context, brand string, customerId string) 
 	}
 
 	if customerId != "" {
-		querySearch += ` AND customer_id=?`
+		querySearch += ` AND c.customer_id=? ORDER BY cs.description AND c.name;`
 
 		result, err := helper.QueryCustomerId(c.DB, ctx, querySearch, result, customerId)
 		if err != nil {
@@ -224,4 +257,52 @@ func (c *Client) GetCards(ctx context.Context, brand string, customerId string) 
 	}
 
 	return nil, errors.New("invalid parameter")
+}
+
+func (c *Client) CreateCharges(ctx context.Context, req requests.ChargesRequest, resAPI *responseWeb.APIChargesResponse, customerId string) ([]responses.ChargesResponse, error) {
+	var result []responses.ChargesResponse
+
+	queryInsert := `INSERT INTO charges (payment_id, customer_id, card_id, amount, recipient_url, descriptions) VALUES (?,?,?,?,?,?);`
+
+	query, err := c.DB.PrepareContext(ctx, queryInsert)
+	if err != nil {
+		log.Println("ERROR REPOSITORY INSERT CHARGES:", err)
+		return nil, err
+	}
+
+	defer func(query *sql.Stmt) {
+		err := query.Close()
+		if err != nil {
+
+		}
+	}(query)
+
+	_, err = query.ExecContext(ctx, resAPI.PaymentId, customerId, req.CardId, resAPI.Amount, resAPI.ReceiptURL, req.Description)
+	if err != nil {
+		log.Println("ERROR REPOSITORY EXEC:", err)
+		return nil, err
+	}
+
+	querySearch := `SELECT ch.payment_id, ch.customer_id, ch.card_id, ch.amount, ch.recipient_url, ch.descriptions, c.name, c.phone_number, cs.description, ch.created_at
+					FROM stripe.charges ch JOIN stripe.customers c ON ch.customer_id = c.customer_id 
+					JOIN stripe.customers_status cs ON c.status = cs.status WHERE c.customer_id=?;`
+
+	rows, err := c.DB.QueryContext(ctx, querySearch, customerId)
+	if err != nil {
+		log.Println("ERROR REPOSITORY CHARGE SEARCH:", err)
+		return nil, err
+	}
+
+	for rows.Next() {
+		row := responses.ChargesResponse{}
+		err = rows.Scan(&row.PaymentId, &row.CustomerId, &row.CardId, &row.Amount, &row.RecipientURL, &row.Descriptions, &row.CustomerName, &row.CustomerPhoneNumber, &row.Status, &row.CreatedAt)
+		if err != nil {
+			log.Println("ERROR REPOSITORY CHARGE SCAN:", err)
+			return nil, err
+		}
+
+		result = append(result, row)
+	}
+
+	return result, nil
 }
