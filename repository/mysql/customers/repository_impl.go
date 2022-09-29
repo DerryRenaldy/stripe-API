@@ -259,8 +259,8 @@ func (c *Client) GetCards(ctx context.Context, brand string, customerId string) 
 	return nil, errors.New("invalid parameter")
 }
 
-func (c *Client) CreateCharges(ctx context.Context, req requests.ChargesRequest, resAPI *responseWeb.APIChargesResponse, customerId string) ([]responses.ChargesResponse, error) {
-	var result []responses.ChargesResponse
+func (c *Client) CreateCharges(ctx context.Context, req requests.ChargesRequest, resAPI *responseWeb.APIChargesResponse, customerId string) (*responses.ChargesResponse, error) {
+	var result responses.ChargesResponse
 
 	queryInsert := `INSERT INTO charges (payment_id, customer_id, card_id, amount, recipient_url, descriptions) VALUES (?,?,?,?,?,?);`
 
@@ -285,24 +285,21 @@ func (c *Client) CreateCharges(ctx context.Context, req requests.ChargesRequest,
 
 	querySearch := `SELECT ch.payment_id, ch.customer_id, ch.card_id, ch.amount, ch.recipient_url, ch.descriptions, c.name, c.phone_number, cs.description, ch.created_at
 					FROM stripe.charges ch JOIN stripe.customers c ON ch.customer_id = c.customer_id 
-					JOIN stripe.customers_status cs ON c.status = cs.status WHERE c.customer_id=?;`
+					JOIN stripe.customers_status cs ON c.status = cs.status WHERE ch.payment_id=?;`
 
-	rows, err := c.DB.QueryContext(ctx, querySearch, customerId)
+	rows, err := c.DB.QueryContext(ctx, querySearch, resAPI.PaymentId)
 	if err != nil {
 		log.Println("ERROR REPOSITORY CHARGE SEARCH:", err)
 		return nil, err
 	}
 
-	for rows.Next() {
-		row := responses.ChargesResponse{}
-		err = rows.Scan(&row.PaymentId, &row.CustomerId, &row.CardId, &row.Amount, &row.RecipientURL, &row.Descriptions, &row.CustomerName, &row.CustomerPhoneNumber, &row.Status, &row.CreatedAt)
+	if rows.Next() {
+		err = rows.Scan(&result.PaymentId, &result.CustomerId, &result.CardId, &result.Amount, &result.RecipientURL, &result.Descriptions, &result.CustomerName, &result.CustomerPhoneNumber, &result.Status, &result.CreatedAt)
 		if err != nil {
 			log.Println("ERROR REPOSITORY CHARGE SCAN:", err)
 			return nil, err
 		}
-
-		result = append(result, row)
 	}
 
-	return result, nil
+	return &result, nil
 }

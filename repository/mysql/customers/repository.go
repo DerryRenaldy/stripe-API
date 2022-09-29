@@ -20,7 +20,7 @@ type Repository interface {
 	InsertCard(ctx context.Context, resAPI *responseWeb.APICardResponse) (*responses.CardResponse, error)
 	GetCustomerById(ctx context.Context, customerId string) (*responses.CustomerResponse, error)
 	GetCards(ctx context.Context, brand string, customerId string) ([]responses.GetCardsResponse, error)
-	CreateCharges(ctx context.Context, req requests.ChargesRequest, resAPI *responseWeb.APIChargesResponse, customerId string) ([]responses.ChargesResponse, error)
+	CreateCharges(ctx context.Context, req requests.ChargesRequest, resAPI *responseWeb.APIChargesResponse, customerId string) (*responses.ChargesResponse, error)
 	ChargesValidation(customerId string) (*responses.ValidatorCharges, error)
 }
 
